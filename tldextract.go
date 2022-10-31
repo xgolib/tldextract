@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
-
-	"github.com/GeertJohan/go.rice"
 )
 
 //used for Result.Flag
@@ -43,7 +41,7 @@ type Trie struct {
 
 var (
 	schemaregex = regexp.MustCompile(`^([abcdefghijklmnopqrstuvwxyz0123456789\+\-\.]+:)?//`)
-	domainregex = regexp.MustCompile(`^[a-z0-9-]{1,63}$`)
+	domainregex = regexp.MustCompile(`^[a-z0-9-\p{L}]{1,63}$`)
 	ip4regex    = regexp.MustCompile(`(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])`)
 )
 
@@ -74,29 +72,6 @@ func New(cacheFile string, debug bool) (*TLDExtract, error) {
 	}
 
 	return &TLDExtract{CacheFile: cacheFile, rootNode: rootNode, debug: debug}, nil
-}
-
-// NewProcreates a new *TLDExtract from embed file, it may be shared between goroutines, we usually need a single instance in an application.
-func NewPro() (*TLDExtract, error) {
-	s, err := rice.MustFindBox("files").String("tld.cache")
-	if err != nil {
-		return nil, err
-	}
-	ts := strings.Split(s, "\n")
-	newMap := make(map[string]*Trie)
-	rootNode := &Trie{ExceptRule: false, ValidTld: false, matches: newMap}
-	for _, t := range ts {
-		if t != "" && !strings.HasPrefix(t, "//") {
-			t = strings.TrimSpace(t)
-			exceptionRule := t[0] == '!'
-			if exceptionRule {
-				t = t[1:]
-			}
-			addTldRule(rootNode, strings.Split(t, "."), exceptionRule)
-		}
-	}
-
-	return &TLDExtract{rootNode: rootNode}, nil
 }
 
 // SetNoValidate disables schema check in order to increase performance.
